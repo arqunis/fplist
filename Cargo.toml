@@ -1,0 +1,13 @@
+[package]
+name = "fplist"
+version = "0.1.0"
+authors = ["acdenisSK <acdenissk69@gmail.com>"]
+edition = "2018"
+description = "An immutable persistent singly-linked list"
+repository = "https://github.com/acdenisSK/plist"
+license = "MIT"
+
+[dependencies]
+
+[features]
+multithreaded = []
