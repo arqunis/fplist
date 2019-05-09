@@ -34,10 +34,7 @@ pub struct PersistentList<T> {
 impl<T> Default for PersistentList<T> {
     #[inline]
     fn default() -> Self {
-        PersistentList {
-            inner: None,
-            len: 0,
-        }
+        Self::new()
     }
 }
 
@@ -100,8 +97,11 @@ impl<T> PersistentList<T> {
     /// Create a new empty list.
     /// Does not allocate.
     #[inline]
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        PersistentList {
+            inner: None,
+            len: 0,
+        }
     }
 
     /// Retrieve the current element.
@@ -136,13 +136,13 @@ impl<T> PersistentList<T> {
     ///
     /// O(1)
     #[inline]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.len
     }
 
     /// Is the list empty?
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
