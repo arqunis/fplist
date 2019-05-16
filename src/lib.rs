@@ -6,8 +6,16 @@
 //! This is accomplished with the built-in [`Rc`] type, but may be replaced with its multithreaded sibling, [`Arc`], if so desired
 //! through the `multithreaded` feature.
 //!
+//! Specify the `serde_impls` feature to turn on serde support.
+//!
 //! [`Rc`]: https://doc.rust-lang.org/stable/std/rc/struct.Rc.html
 //! [`Arc`]: https://doc.rust-lang.org/nightly/std/sync/struct.Arc.html
+
+#[cfg(feature = "serde_impls")]
+use serde::ser::{Serialize, Serializer, SerializeSeq};
+#[cfg(feature = "serde_impls")]
+use serde::de::{Deserialize, Deserializer, Visitor, SeqAccess};
+
 
 use std::fmt::{self, Write};
 use std::iter::FromIterator;
@@ -326,6 +334,54 @@ impl<T> fmt::Debug for OwnedListIter<T> {
         f.debug_struct("OwnedListIter")
             .field("len", &self.inner.len())
             .finish()
+    }
+}
+
+#[cfg(feature = "serde_impls")]
+impl<T: Serialize> Serialize for PersistentList<T> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut seq = serializer.serialize_seq(Some(self.len()))?;
+
+        for elem in self {
+            seq.serialize_element(elem)?;
+        }
+
+        seq.end()
+    }
+}
+
+#[cfg(feature = "serde_impls")]
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for PersistentList<T> {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        use std::marker::PhantomData;
+
+        struct ListVisitor<T>(PhantomData<T>);
+
+        impl<'de, T: Deserialize<'de>> Visitor<'de> for ListVisitor<T> {
+            type Value = PersistentList<T>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a sequence")
+            }
+
+            fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
+                // Build the list from the last to first elements.
+                fn construct<'de, S: SeqAccess<'de>, T: Deserialize<'de>>(seq: &mut S) -> Result<PersistentList<T>, S::Error> {
+                    match seq.next_element()? {
+                        None => Ok(PersistentList::new()),
+                        Some(elem) => {
+                            let list = construct(seq)?;
+
+                            Ok(cons(elem, list))
+                        }
+                    }
+                }
+
+                construct(&mut seq)
+            }
+        }
+
+        deserializer.deserialize_seq(ListVisitor(PhantomData))
     }
 }
 
