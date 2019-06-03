@@ -16,10 +16,10 @@ use serde::ser::{Serialize, Serializer, SerializeSeq};
 #[cfg(feature = "serde_impls")]
 use serde::de::{Deserialize, Deserializer, Visitor, SeqAccess};
 
-
 use std::fmt::{self, Write};
 use std::iter::FromIterator;
 use std::mem;
+use std::ops::Index;
 
 #[cfg(not(feature = "multithreaded"))]
 type Ref<T> = std::rc::Rc<Node<T>>;
@@ -140,6 +140,14 @@ impl<T> PersistentList<T> {
         }
     }
 
+    /// Return a reference to a possible element at index `idx`.
+    ///
+    /// O(n)
+    #[inline]
+    pub fn get(&self, idx: usize) -> Option<&T> {
+        self.iter().nth(idx)
+    }
+
     /// Retrieve how many elements there are in total.
     ///
     /// O(1)
@@ -250,6 +258,15 @@ impl<T: Clone> Extend<T> for PersistentList<T> {
     #[inline]
     fn extend<It: IntoIterator<Item = T>>(&mut self, iter: It) {
         *self = self.clone().append(list(iter));
+    }
+}
+
+impl<T> Index<usize> for PersistentList<T> {
+    type Output = T;
+
+    #[inline]
+    fn index(&self, idx: usize) -> &Self::Output {
+        self.get(idx).expect("out of bounds")
     }
 }
 
@@ -386,6 +403,15 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for PersistentList<T> {
 }
 
 /// Create a new list with one element.
+///
+/// ```rust
+/// use fplist::one;
+///
+/// let x = one(42);
+///
+/// assert_eq!(x.first(), Some(&42));
+/// assert_eq!(x.len(), 1);
+/// ```
 #[inline]
 pub fn one<T>(elem: T) -> PersistentList<T> {
     cons(elem, PersistentList::new())
@@ -426,6 +452,26 @@ pub fn cons<T>(elem: T, mut next: PersistentList<T>) -> PersistentList<T> {
 }
 
 /// Create a new list out of an iterable.
+///
+/// ```rust
+/// use fplist::list;
+///
+/// let list = list(vec![1, 2, 3]);
+///
+/// assert_eq!(list.first(), Some(&1));
+///
+/// let list = list.rest();
+///
+/// assert_eq!(list.first(), Some(&2));
+///
+/// let list = list.rest();
+///
+/// assert_eq!(list.first(), Some(&3));
+///
+/// let list = list.rest();
+///
+/// assert_eq!(list.first(), None);
+/// ```
 pub fn list<T, It: IntoIterator<Item = T>>(elems: It) -> PersistentList<T> {
     let mut elems = elems.into_iter();
     match elems.next() {
@@ -442,5 +488,14 @@ mod tests {
     fn make_list() {
         assert_eq!(one(42), cons(42, PersistentList::new()));
         assert_eq!(cons(1, cons(2, one(3))), list([1, 2, 3].iter().cloned()));
+    }
+
+    #[test]
+    fn index() {
+        let list = cons(1, cons(2, one(3)));
+
+        assert_eq!(list[0], 1);
+        assert_eq!(list[1], 2);
+        assert_eq!(list[2], 3);
     }
 }
