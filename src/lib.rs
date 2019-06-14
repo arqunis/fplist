@@ -383,18 +383,13 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for PersistentList<T> {
 
             fn visit_seq<S: SeqAccess<'de>>(self, mut seq: S) -> Result<Self::Value, S::Error> {
                 // Build the list from the last to first elements.
-                fn construct<'de, S: SeqAccess<'de>, T: Deserialize<'de>>(seq: &mut S) -> Result<PersistentList<T>, S::Error> {
-                    match seq.next_element()? {
-                        None => Ok(PersistentList::new()),
-                        Some(elem) => {
-                            let list = construct(seq)?;
-
-                            Ok(cons(elem, list))
-                        }
+                match seq.next_element()? {
+                    None => Ok(PersistentList::new()),
+                    Some(elem) => {
+                        let list = self.visit_seq(seq)?;
+                        Ok(cons(elem, list))
                     }
                 }
-
-                construct(&mut seq)
             }
         }
 
