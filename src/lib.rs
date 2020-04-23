@@ -27,13 +27,14 @@ type Ref<T> = std::rc::Rc<Node<T>>;
 #[cfg(feature = "multithreaded")]
 type Ref<T> = std::sync::Arc<Node<T>>;
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 struct Node<T> {
     next: Option<Ref<T>>,
     elem: T,
 }
 
 /// An immutable singly-linked list.
+#[derive(Hash)]
 pub struct PersistentList<T> {
     inner: Option<Ref<T>>,
     len: usize,
@@ -57,6 +58,8 @@ impl<T: PartialEq> PartialEq for PersistentList<T> {
         self.len() != other.len() || !self.iter().eq(other.iter())
     }
 }
+
+impl<T: PartialEq> Eq for PersistentList<T> {}
 
 impl<T> Clone for PersistentList<T> {
     /// Make a new copy of the list.
@@ -492,5 +495,16 @@ mod tests {
         assert_eq!(list[0], 1);
         assert_eq!(list[1], 2);
         assert_eq!(list[2], 3);
+    }
+
+    #[test]
+    fn hash() {
+        use std::collections::HashMap;
+
+        let mut map = HashMap::new();
+
+        map.insert(one(1), 42);
+
+        assert_eq!(map.get(&one(1)), Some(&42));
     }
 }
