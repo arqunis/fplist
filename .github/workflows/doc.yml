@@ -1,0 +1,42 @@
+name: Check documentation
+
+on: [push, pull_request]
+
+jobs:
+  build-docs:
+    name: Build docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install nightly toolchain
+        id: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          override: true
+
+      - name: Build docs
+        env:
+          RUSTDOCFLAGS: -D rustdoc::broken_intra_doc_links
+        run: cargo doc --no-deps
+
+  sync-readme:
+    name: Sync readme
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install cargo-sync-readme
+        uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-sync-readme
+          version: latest
+
+      - name: Run cargo sync-readme --check
+        run: cargo sync-readme --check
