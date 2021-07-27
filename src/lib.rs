@@ -238,7 +238,7 @@ impl<T> PersistentList<T> {
     /// The original list is replaced with the empty list.
     #[inline]
     pub fn take(&mut self) -> Self {
-        mem::replace(self, PersistentList::new())
+        mem::take(self)
     }
 }
 
