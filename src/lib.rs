@@ -56,6 +56,8 @@
 //! [cons]: https://en.wikipedia.org/wiki/Cons
 //! [serde]: https://serde.rs
 
+#![deny(rust_2018_idioms)]
+
 #[cfg(feature = "serde_impls")]
 use serde::ser::{Serialize, Serializer, SerializeSeq};
 #[cfg(feature = "serde_impls")]
@@ -125,7 +127,7 @@ impl<T> Clone for PersistentList<T> {
 
 impl<T: fmt::Debug> fmt::Debug for PersistentList<T> {
     #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_list().entries(self.iter()).finish()
     }
 }
@@ -143,7 +145,7 @@ impl<T: fmt::Display> fmt::Display for PersistentList<T> {
     ///
     /// assert_eq!(list.to_string(), "(1 2 3)");
     /// ```
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_char('(')?;
 
         let mut iter = self.iter();
@@ -198,7 +200,7 @@ impl<T> PersistentList<T> {
 
     /// Returns an immutable iterator to all of the elements in the list.
     #[inline]
-    pub fn iter(&self) -> ListIter<T> {
+    pub fn iter(&self) -> ListIter<'_, T> {
         ListIter {
             node: self.inner.as_ref(),
             len: self.len(),
@@ -355,7 +357,7 @@ impl<T> Drop for PersistentList<T> {
 
 /// An immutable view to elements of a [`PersistentList`].
 #[derive(Clone)]
-pub struct ListIter<'a, T: 'a> {
+pub struct ListIter<'a, T> {
     node: Option<&'a Ref<T>>,
     len: usize,
 }
@@ -381,7 +383,7 @@ impl<'a, T> Iterator for ListIter<'a, T> {
 impl<'a, T> ExactSizeIterator for ListIter<'a, T> {}
 
 impl<'a, T> fmt::Debug for ListIter<'a, T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ListIter").field("len", &self.len).finish()
     }
 }
@@ -417,7 +419,7 @@ impl<T: Clone> Iterator for OwnedListIter<T> {
 impl<T: Clone> ExactSizeIterator for OwnedListIter<T> {}
 
 impl<T> fmt::Debug for OwnedListIter<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("OwnedListIter")
             .field("len", &self.inner.len())
             .finish()
@@ -447,7 +449,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for PersistentList<T> {
         impl<'de, T: Deserialize<'de>> Visitor<'de> for ListVisitor<T> {
             type Value = PersistentList<T>;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
                 formatter.write_str("a sequence")
             }
 
