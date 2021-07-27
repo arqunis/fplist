@@ -138,7 +138,6 @@ impl<T: fmt::Display> fmt::Display for PersistentList<T> {
     /// # Example
     ///
     /// ```rust
-    ///
     /// use fplist::{PersistentList, cons};
     ///
     /// let list = cons(1, cons(2, cons(3, PersistentList::new())));
