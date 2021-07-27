@@ -1,6 +1,6 @@
 [package]
 name = "fplist"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Alex M. M. <acdenissk69@gmail.com>"]
 edition = "2018"
 description = "An immutable, persistent, singly-linked list"
