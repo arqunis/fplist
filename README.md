@@ -1,5 +1,7 @@
 # fplist
 
+<!-- cargo-sync-readme start -->
+
 A persistent, immutable, and singly-linked list in Rust.
 
 Persistency is a property of data structures when modifying them. Persistency
@@ -20,7 +22,7 @@ an API for immutable and owned access to its elements. You may circumvent this
 with the [`RefCell`] or [`Mutex`] types, which grant interior mutability.
 
 The list type is inspired by [cons] lists from Lisp languages, which is also how
-the list type is constructed with.
+the list type is constructed with and represented.
 
 ## Serde
 
@@ -50,10 +52,6 @@ let list = list.rest();
 assert_eq!(list.first(), None);
 ```
 
-## License
-
-This project is under the jurisdiction of the [MIT License][license].
-
 [ref]: https://en.m.wikipedia.org/wiki/Reference_counting
 [`Rc`]: https://doc.rust-lang.org/stable/std/rc/struct.Rc.html
 [`Arc`]: https://doc.rust-lang.org/stable/std/sync/struct.Arc.html
@@ -61,4 +59,11 @@ This project is under the jurisdiction of the [MIT License][license].
 [`Mutex`]: https://doc.rust-lang.org/stable/std/sync/struct.Mutex.html
 [cons]: https://en.wikipedia.org/wiki/Cons
 [serde]: https://serde.rs
+
+<!-- cargo-sync-readme end -->
+
+## License
+
+This project is under the jurisdiction of the [MIT License][license].
+
 [license]: LICENSE.md
