@@ -1,7 +1,7 @@
 #![cfg(feature = "serde_impls")]
 
 use fplist::{cons, PersistentList};
-use serde_json::{to_string, from_str};
+use serde_json::{from_str, to_string};
 
 #[test]
 fn serialization() {
@@ -20,4 +20,3 @@ fn deserialization() {
 
     assert_eq!(res, expect);
 }
-

@@ -59,15 +59,15 @@
 #![deny(rust_2018_idioms)]
 
 #[cfg(feature = "serde_impls")]
-use serde::ser::{Serialize, Serializer, SerializeSeq};
+use serde::de::{Deserialize, Deserializer, SeqAccess, Visitor};
 #[cfg(feature = "serde_impls")]
-use serde::de::{Deserialize, Deserializer, Visitor, SeqAccess};
+use serde::ser::{Serialize, SerializeSeq, Serializer};
 
 use std::fmt::{self, Write};
+use std::hash::{Hash, Hasher};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Index;
-use std::hash::{Hash, Hasher};
 
 #[cfg(not(feature = "multithreaded"))]
 type Ref<T> = std::rc::Rc<Node<T>>;
@@ -114,7 +114,6 @@ impl<T: Hash> Hash for PersistentList<T> {
         }
     }
 }
-
 
 impl<T> Clone for PersistentList<T> {
     /// Creates a shallow copy of the list.
