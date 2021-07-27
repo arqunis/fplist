@@ -495,18 +495,22 @@ pub fn one<T>(elem: T) -> PersistentList<T> {
 /// let list = cons(1, cons(2, cons(3, PersistentList::new())));
 ///
 /// assert_eq!(list.first(), Some(&1));
+/// assert_eq!(list.len(), 3);
 ///
 /// let list = list.rest();
 ///
 /// assert_eq!(list.first(), Some(&2));
+/// assert_eq!(list.len(), 2);
 ///
 /// let list = list.rest();
 ///
 /// assert_eq!(list.first(), Some(&3));
+/// assert_eq!(list.len(), 1);
 ///
 /// let list = list.rest();
 ///
 /// assert_eq!(list.first(), None);
+/// assert_eq!(list.len(), 0);
 /// ```
 #[inline]
 pub fn cons<T>(elem: T, mut next: PersistentList<T>) -> PersistentList<T> {
