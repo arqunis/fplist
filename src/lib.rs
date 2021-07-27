@@ -67,6 +67,7 @@ use std::fmt::{self, Write};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Index;
+use std::hash::{Hash, Hasher};
 
 #[cfg(not(feature = "multithreaded"))]
 type Ref<T> = std::rc::Rc<Node<T>>;
@@ -83,7 +84,6 @@ struct Node<T> {
 /// A persistent, immutable, singly-linked list.
 ///
 /// Refer to the crate documentation for more information.
-#[derive(Hash)]
 pub struct PersistentList<T> {
     inner: Option<Ref<T>>,
     len: usize,
@@ -101,14 +101,20 @@ impl<T: PartialEq> PartialEq for PersistentList<T> {
     fn eq(&self, other: &Self) -> bool {
         self.len() == other.len() && self.iter().eq(other.iter())
     }
-
-    #[inline]
-    fn ne(&self, other: &Self) -> bool {
-        self.len() != other.len() || !self.iter().eq(other.iter())
-    }
 }
 
 impl<T: PartialEq> Eq for PersistentList<T> {}
+
+impl<T: Hash> Hash for PersistentList<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.len.hash(state);
+
+        for elem in self.iter() {
+            elem.hash(state);
+        }
+    }
+}
+
 
 impl<T> Clone for PersistentList<T> {
     /// Creates a shallow copy of the list.
@@ -193,7 +199,7 @@ impl<T> PersistentList<T> {
     pub fn rest(&self) -> Self {
         PersistentList {
             inner: self.inner.as_ref().and_then(|n| n.next.clone()),
-            len: self.len.checked_sub(1).unwrap_or(0),
+            len: self.len.saturating_sub(1),
         }
     }
 
