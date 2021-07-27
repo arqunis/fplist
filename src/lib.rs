@@ -78,7 +78,9 @@ struct Node<T> {
     elem: T,
 }
 
-/// An immutable singly-linked list.
+/// A persistent, immutable, singly-linked list.
+///
+/// Refer to the crate documentation for more information.
 #[derive(Hash)]
 pub struct PersistentList<T> {
     inner: Option<Ref<T>>,
@@ -107,9 +109,11 @@ impl<T: PartialEq> PartialEq for PersistentList<T> {
 impl<T: PartialEq> Eq for PersistentList<T> {}
 
 impl<T> Clone for PersistentList<T> {
-    /// Make a new copy of the list.
+    /// Creates a shallow copy of the list.
     ///
-    /// O(1)
+    /// ## Time Complexity
+    ///
+    /// Time Complexity is O(1).
     #[inline]
     fn clone(&self) -> Self {
         PersistentList {
@@ -127,9 +131,18 @@ impl<T: fmt::Debug> fmt::Debug for PersistentList<T> {
 }
 
 impl<T: fmt::Display> fmt::Display for PersistentList<T> {
-    /// Formats this list to a parenthesis representation.
+    /// Formats the list to a parenthesis representation.
     ///
-    /// A list of 1->2->3->() would result in the repr.: `(1 2 3)`
+    /// # Example
+    ///
+    /// ```rust
+    ///
+    /// use fplist::{PersistentList, cons};
+    ///
+    /// let list = cons(1, cons(2, cons(3, PersistentList::new())));
+    ///
+    /// assert_eq!(list.to_string(), "(1 2 3)");
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_char('(')?;
 
@@ -150,7 +163,11 @@ impl<T: fmt::Display> fmt::Display for PersistentList<T> {
 }
 
 impl<T> PersistentList<T> {
-    /// Create a new empty list.
+    /// An instance of an empty list.
+    pub const NULL: PersistentList<T> = PersistentList::new();
+
+    /// Creates an empty list.
+    ///
     /// Does not allocate.
     #[inline]
     pub const fn new() -> Self {
@@ -160,17 +177,17 @@ impl<T> PersistentList<T> {
         }
     }
 
-    /// Retrieve the current element.
+    /// Retrieves the current element.
     ///
-    /// Returns `None` in an empty list.
+    /// Returns `None` on an empty list.
     #[inline]
     pub fn first(&self) -> Option<&T> {
         self.inner.as_ref().map(|n| &n.elem)
     }
 
-    /// Retrieve the next list in line.
+    /// Retrieves the list pointing to the next element.
     ///
-    /// Decreases the length by one unless it's the empty list.
+    /// The length of the list is decreased by one, unless it is an empty list.
     #[inline]
     pub fn rest(&self) -> Self {
         PersistentList {
@@ -179,7 +196,7 @@ impl<T> PersistentList<T> {
         }
     }
 
-    /// Provide an iterator to all of the elements in the list.
+    /// Returns an immutable iterator to all of the elements in the list.
     #[inline]
     pub fn iter(&self) -> ListIter<T> {
         ListIter {
@@ -188,29 +205,37 @@ impl<T> PersistentList<T> {
         }
     }
 
-    /// Return a reference to a possible element at index `idx`.
+    /// Returns a reference to an element at index `idx`.
     ///
-    /// O(n)
+    /// Returns `None` if no element is present at the specified index.
+    ///
+    /// ## Time Complexity
+    ///
+    /// Time complexity is O(n).
     #[inline]
     pub fn get(&self, idx: usize) -> Option<&T> {
         self.iter().nth(idx)
     }
 
-    /// Retrieve how many elements there are in total.
+    /// Returns the amount of elements in the list.
     ///
-    /// O(1)
+    /// ## Time Complexity
+    ///
+    /// Time complexity is O(1).
     #[inline]
     pub const fn len(&self) -> usize {
         self.len
     }
 
-    /// Is the list empty?
+    /// Returns a boolean indicating whether the list is empty.
     #[inline]
     pub const fn is_empty(&self) -> bool {
         self.len() == 0
     }
 
-    /// Return an owned instance of this list, leaving an empty one in its place.
+    /// Returns an owned instance of the list from a `&mut` context.
+    ///
+    /// The original list is replaced with the empty list.
     #[inline]
     pub fn take(&mut self) -> Self {
         mem::replace(self, PersistentList::new())
@@ -218,16 +243,15 @@ impl<T> PersistentList<T> {
 }
 
 impl<T: Clone> PersistentList<T> {
-    /// Split the list to its current element and
-    /// the next succeeding list.
+    /// Splits the list to its current element and the list pointing to the next
+    /// element.
     ///
-    /// This will attempt to take ownership of the element,
-    /// but if there are other existing references to it, its clone will be returned.
-    #[inline]
+    /// This will attempt to take ownership of the element, unless there is more
+    /// than one reference to the element. In that case, the element is cloned.
+    ///
+    /// Returns `None` on an empty list.
     pub fn pop(mut self) -> Option<(T, Self)> {
         self.inner.take().map(|node| {
-            // Steal the node if possible.
-            // Else clone it in order to leave it alone, as apparently it has a big cavalry standing behind it.
             let node = Ref::try_unwrap(node).unwrap_or_else(|n| (*n).clone());
 
             let rest = PersistentList {
@@ -239,36 +263,36 @@ impl<T: Clone> PersistentList<T> {
         })
     }
 
-    /// Similar to [`first`] but tries to take ownership of the element if possible, otherwise clones it.
+    /// Retrieves an owned instance of the current element.
     ///
-    /// [`first`]: #method.first
+    /// If there is more than one reference to the element, it will be cloned.
+    ///
+    /// Returns `None` on an empty list.
     #[inline]
     pub fn pfirst(self) -> Option<T> {
         self.pop().map(|(elem, _)| elem)
     }
 
-    /// Merge this list's elements with another, creating a new list with all the elements combined.
+    /// Merges the elements of this list with another.
     ///
-    /// Note: All of the elements from this list will have their ownership taken, or be cloned into the new list
-    /// depending on the number of references to said elements.
+    /// The elements of this list are [`pop`]ped, while the elements of the other
+    /// list are shared.
     ///
-    /// The mergee list's elements will NOT be cloned; their memory will be shared in the new list!
-    #[inline]
+    /// [`pop`]: Self::pop
     pub fn append(self, r: PersistentList<T>) -> PersistentList<T> {
-        if self.is_empty() {
-            r
-        } else {
-            let (elem, l) = self.pop().unwrap();
-            cons(elem, l.append(r))
+        match self.pop() {
+            None => r,
+            Some((elem, l)) => cons(elem, l.append(r)),
         }
     }
 }
 
 impl<T: PartialEq, U> PersistentList<(T, U)> {
-    /// Find the value belonging to the provided key in this [`Association List`].
+    /// Searches for the value belonging to the provided key.
+    ///
+    /// This method assumes this list is an [`association list`].
     ///
     /// [`association list`]: https://en.m.wikipedia.org/wiki/Association_list
-    #[inline]
     pub fn assoq(&self, key: &T) -> Option<&U> {
         self.iter()
             .find_map(|t| if t.0 == *key { Some(&t.1) } else { None })
@@ -320,7 +344,7 @@ impl<T> Index<usize> for PersistentList<T> {
 
 impl<T> Drop for PersistentList<T> {
     fn drop(&mut self) {
-        // Only deallocate memory that's no longer being shared.
+        // Only deallocate memory that is no longer being shared.
         while let Some(node) = self.inner.take() {
             if let Ok(node) = Ref::try_unwrap(node) {
                 self.inner = node.next;
@@ -329,7 +353,7 @@ impl<T> Drop for PersistentList<T> {
     }
 }
 
-/// A view to a list's elements, expressed as an iterator.
+/// An immutable view to elements of a [`PersistentList`].
 #[derive(Clone)]
 pub struct ListIter<'a, T: 'a> {
     node: Option<&'a Ref<T>>,
@@ -339,7 +363,6 @@ pub struct ListIter<'a, T: 'a> {
 impl<'a, T> Iterator for ListIter<'a, T> {
     type Item = &'a T;
 
-    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         self.node.map(|n| {
             self.len -= 1;
@@ -363,10 +386,9 @@ impl<'a, T> fmt::Debug for ListIter<'a, T> {
     }
 }
 
-/// An owning view to a list.
+/// An owned view to elements of a list.
 ///
-/// Attempts to take ownership of the elements if possible,
-/// otherwise clones them.
+/// If there is more than one reference to an element, it will be cloned.
 #[derive(Clone)]
 pub struct OwnedListIter<T> {
     inner: PersistentList<T>,
@@ -445,7 +467,9 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for PersistentList<T> {
     }
 }
 
-/// Create a new list with one element.
+/// Creates a new list with one element.
+///
+/// Shorthand for `cons(elem, PersistentList::new())`.
 ///
 /// ```rust
 /// use fplist::one;
@@ -460,9 +484,9 @@ pub fn one<T>(elem: T) -> PersistentList<T> {
     cons(elem, PersistentList::new())
 }
 
-/// Construct a new list by prepending one element to the next list.
+/// Constructs a new list by prepending one element to the another list.
 ///
-/// Increases the length.
+/// The length of the overall list is increased.
 ///
 /// ```rust
 /// use fplist::{cons, PersistentList};
@@ -494,7 +518,7 @@ pub fn cons<T>(elem: T, mut next: PersistentList<T>) -> PersistentList<T> {
     }
 }
 
-/// Create a new list out of an iterable.
+/// Creates a new list out of an iterable.
 ///
 /// ```rust
 /// use fplist::list;
