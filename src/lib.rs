@@ -1,32 +1,53 @@
-//! A persistent, immutable, and singly-linked list in Rust.
+//! A persistent singly-linked list in Rust.
 //!
-//! Persistency is a property of data structures when modifying them. Persistency
-//! stipulates that old versions of the structures are always preserved when adding
-//! or removing elements. This crate provides such a structure in the form of
-//! a linked list.
+//! ## Persistency
 //!
-//! To be efficient as possible when maintaining persistency, the linked list uses
-//! [reference counting][ref]. This permits sharing memory between lists whose
-//! elements are the same. By default, the list uses the [`Rc`] type for this
-//! purpose. However, one major downside of `Rc` is that lists cannot be sent
-//! across threads. For this, you might want to enable the `multithreaded` feature,
-//! which will signal the list to use the multithreaded sibling [`Arc`].
+//! Persistency is a property of data structures when they are modified.
 //!
-//! One innate requirement of persistency is that structures must be immutable. That
-//! is, they cannot permit mutation of their elements. The list type only provides
-//! an API for immutable and owned access to its elements. You may circumvent this
-//! with the [`RefCell`] or [`Mutex`] types, which grant interior mutability.
+//! When an object in memory is modified, this typically involves discarding its current value and
+//! replacing it with a new one. This is often the desired effect, as most applications are not
+//! interested in the history of how much an object's value has changed, or what it was changed
+//! into. Such objects are understood to be *mutable*.
 //!
-//! The list type is inspired by [cons] lists from Lisp languages, which is also how
-//! the list type is constructed with and represented.
+//! The opposite of a mutable object is an *immutable* object, whose value, once the object is
+//! initialised, cannot change and never does throughout the course of an application. The only
+//! time it may "change" is when the object itself is modified by recreating it with a new
+//! computation of the previous value. This gives rise to a property that mutable objects lack:
+//! consistency.
+//!
+//! Persistency exploits consistency to allow immutability while minimising memory usage by sharing
+//! values of previous objects with new objects. In data structures, this means their elements are
+//! shared between different instances of the data structures if they are the same.
+//!
+//! This crate offers a persistent data structure in the form of a singly-linked list, using
+//! [reference counting][ref] to share nodes between lists.
+//!
+//! ## Multithreading
+//!
+//! Reference counting is implemented using the standard library [`Rc`] type, restricting the use
+//! of the list to a single thread. If you wish to use it in multiple threads with an added
+//! overhead, enable the `multithreaded` feature to switch to the atomic version of [`Rc`],
+//! [`Arc`].
+//!
+//! ## Mutating nodes
+//!
+//! The innate requirement of persistency is immutability. In the case of this crate, this means
+//! you cannot change the list's length and the first node it points to, as well as a node's
+//! pointer to the next node.
+//!
+//! A node's value is also immutable, but only as a side-effect of Rust's XOR mutability rule. If
+//! you wish to change the value, you may wrap it with the standard library [`RefCell`], [`Mutex`],
+//! and/or [`RwLock`] types, which grant interior mutability. This crate only cares about sharing
+//! list nodes and, therefore, heap allocations made for the nodes, not the values they store.
 //!
 //! ## Serde
 //!
-//! The list is able to be serialized or deserialized by the [serde framework][serde].
-//! Support, however, is disabled by default (to avoid needless dependencies). Enable
-//! support with the `serde_impls` feature.
+//! This crate offers optional support for serialisation and deserialisation using the [serde
+//! framework][serde]. Enable it with the `serde_impls` feature.
 //!
 //! ## Example
+//!
+//! The linked list is inspired by [cons] lists from Lisp languages, which is you construct it.
 //!
 //! ```rust
 //! use fplist::{PersistentList, cons};
@@ -53,6 +74,7 @@
 //! [`Arc`]: https://doc.rust-lang.org/stable/std/sync/struct.Arc.html
 //! [`RefCell`]: https://doc.rust-lang.org/stable/std/cell/struct.RefCell.html
 //! [`Mutex`]: https://doc.rust-lang.org/stable/std/sync/struct.Mutex.html
+//! [`RwLock`]: https://doc.rust-lang.org/stable/std/sync/struct.RwLock.html
 //! [cons]: https://en.wikipedia.org/wiki/Cons
 //! [serde]: https://serde.rs
 
@@ -81,7 +103,7 @@ struct Node<T> {
     elem: T,
 }
 
-/// A persistent, immutable, singly-linked list.
+/// A persistent singly-linked list.
 ///
 /// Refer to the crate documentation for more information.
 pub struct PersistentList<T> {
