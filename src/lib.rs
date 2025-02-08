@@ -16,9 +16,8 @@
 //! consistency.
 //!
 //! Persistency exploits consistency to allow immutability while minimising memory usage by sharing
-//! values of previous objects with new objects. In data structures, this means
-//! their elements are shared between different instances of the data structures
-//! if they are the same.
+//! values of previous objects with new objects. In data structures, this means their elements are
+//! shared between different instances of the data structures if they are the same.
 //!
 //! This crate offers a persistent data structure in the form of a singly-linked list, using
 //! [reference counting][ref] to share nodes between lists.
